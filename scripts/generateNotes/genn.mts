@@ -3,6 +3,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import type { Meta } from '@src/types/model/Meta';
 import { createHash } from 'crypto';
+import MarkdownIt from 'markdown-it';
+import hljs from 'highlight.js';
+import ejs from 'ejs';
 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -10,7 +13,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.join(__dirname, '../..');
 const PATHS = {
   notes: path.join(PROJECT_ROOT, 'notes'),
-  output: path.join(PROJECT_ROOT, 'data/notesmap.ts')
+  output: path.join(PROJECT_ROOT, 'notesHtml'),
+  noteTemplate: path.join(PROJECT_ROOT, 'noteTemplate.ejs')
 };
 
 
@@ -21,7 +25,20 @@ type Folder = {
   isNote: boolean;
   subfolders: Folder[];
   meta?: (Meta | null)[];  // Мета каждой папки - это массив мет. В [0] - собственная мета, а дальше - меты родителей.
+  id?: string;
 }
+
+
+const md = new MarkdownIt({
+  highlight: (str, lang) => {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(str, { language: lang }).value;
+      } catch (__) {}
+    }
+    return hljs.highlightAuto(str).value;
+  }
+});
 
 
 async function buildFoldersTree(rootDir: string): Promise<Folder> {
@@ -99,19 +116,29 @@ function flattenFoldersTree(root: Folder): Folder[] {
 async function makeNote(folder: Folder): Promise<void> {
   // Вернуть можно uid файла и положить его в дерево
   const files = await fs.readdir(folder.fullpath);
-  let note;
+  let notepath;
   for (const file of files) {
     const fullpath = path.join(folder.fullpath, file);
     const stat = await fs.stat(fullpath);
     if (stat.isDirectory() || !isMarkdownFile(file)) continue;
-    note = fullpath;
+    notepath = fullpath;
     break;
   }
-  if (!note) {
+  if (!notepath) {
     console.warn(`⚠️ Не найден md-файл с заметкой в note-директории ${folder.fullpath}`);
     return;
   }
-  
+  const markdownContent = await fs.readFile(notepath, 'utf-8');
+  const noteTemplate = await fs.readFile(PATHS.noteTemplate, 'utf-8');
+  const htmlContent = md.render(markdownContent);
+  const noteId = idFromPath(notepath);
+  folder.id = noteId;
+  const finalHtml = ejs.render(noteTemplate, {
+    title: folder.meta?.[0]?.title || 'Заметка',
+    content: htmlContent,
+    stylesheet: "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css"
+  });
+  await fs.writeFile(path.join(PATHS.output, noteId + '.html'), finalHtml);
 }
 
 
