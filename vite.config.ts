@@ -11,7 +11,7 @@ export default defineConfig({
     createHtmlPlugin({
       inject: {
         data: {
-          title: 'remember me'
+          title: 'memoire app'
         }
       }
     })
