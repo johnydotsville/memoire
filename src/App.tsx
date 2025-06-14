@@ -1,12 +1,12 @@
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import { BaseDarkTheme } from '@/themes/baseDark';
-
+import { Test } from './Test';
 
 function App() {
   return (
     <ThemeProvider theme={BaseDarkTheme}>
       <CssBaseline />
-      <div>Memoire app</div>
+      <Test />
     </ThemeProvider>
   )
 }
