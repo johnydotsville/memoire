@@ -4,7 +4,7 @@ import { flattenTree } from "./utils/flattenTree";
 
 
 export const Test = () => {
-  const [notes, setNotes] = useState();
+  const [notes, setNotes] = useState<any>();
 
   useEffect(() => {
     const flatTree = flattenTree(tree) ;
@@ -17,7 +17,7 @@ export const Test = () => {
   return (
     <div>{notes.map(note => 
       <div key={note.id}>
-        <a href={`/static/documents/${note.id}.html`} target='_blank'>{note.title}</a>
+        <a href={`./static/documents/${note.id}.html`} target='_blank'>{note.title}</a>
       </div>)}
     </div>
   )

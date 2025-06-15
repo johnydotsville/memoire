@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Базовая выборка данных</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+</head>
+<body>
+  <h1>Простая выборка данных</h1>
+<pre><code class="language-javascript"><span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">useTasksInfinite</span>(<span class="hljs-params"></span>) {
+  <span class="hljs-keyword">const</span> { 
+    data,
+    isFetching,
+    error,
+    fetchNextPage
+  } = <span class="hljs-title function_">useInfiniteQuery</span>({
+    <span class="hljs-attr">queryKey</span>: [<span class="hljs-string">&quot;tasks&quot;</span>],
+    <span class="hljs-attr">queryFn</span>: fetchTasksInfinite,
+    <span class="hljs-attr">initialPageParam</span>: { 
+      <span class="hljs-attr">limit</span>: <span class="hljs-number">2</span>
+    },
+    <span class="hljs-attr">getNextPageParam</span>: <span class="hljs-function">(<span class="hljs-params">lastPage, allPages</span>) =&gt;</span> {
+      <span class="hljs-keyword">return</span> lastPage.<span class="hljs-property">meta</span>.<span class="hljs-property">hasMore</span> ? {
+        <span class="hljs-attr">cid</span>: lastPage.<span class="hljs-property">data</span>[lastPage.<span class="hljs-property">data</span>.<span class="hljs-property">length</span>-<span class="hljs-number">1</span>].<span class="hljs-property">id</span>,
+        <span class="hljs-attr">limit</span>: <span class="hljs-number">2</span>
+      } : <span class="hljs-literal">undefined</span>
+    }
+  })
+
+  <span class="hljs-keyword">return</span> {
+    data,
+    isFetching,
+    error,
+    fetchNextPage,
+  }
+}
+</code></pre>
+<pre><code class="language-javascript"><span class="hljs-comment">// Либа дает нам контекст, внутри него есть поле pageParam.</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">fetchTasksInfinite</span>(<span class="hljs-params">{ pageParam }</span>) {
+  <span class="hljs-keyword">const</span> url = urlBuilder.<span class="hljs-title function_">tasksInfiniteUrlBuilder</span>(pageParam);
+  <span class="hljs-keyword">const</span> result = <span class="hljs-keyword">await</span> <span class="hljs-title function_">fetchData</span>(url);
+  <span class="hljs-keyword">return</span> result;
+}
+</code></pre>
+<pre><code class="language-react"><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> <span class="hljs-title function_">TaskListInfinite</span> = (<span class="hljs-params"></span>) =&gt; {
+  <span class="hljs-keyword">const</span> { 
+    data,
+    isFetching,
+    error,
+    fetchNextPage
+  } = <span class="hljs-title function_">useTasksInfinite</span>();
+
+  <span class="hljs-keyword">if</span> (isFetching) <span class="hljs-keyword">return</span> <span class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>Бесконечный стук шагов...<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span></span>;
+  <span class="hljs-keyword">if</span> (error) <span class="hljs-keyword">return</span> <span class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>{ error.message }<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span></span>
+
+  <span class="hljs-keyword">return</span> (
+    <span class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">Stack</span>&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">TaskList</span> <span class="hljs-attr">tasks</span>=<span class="hljs-string">{data.pages.flatMap(x</span> =&gt;</span> x.data)} /&gt;
+      <span class="hljs-tag">&lt;<span class="hljs-name">Button</span> <span class="hljs-attr">onClick</span>=<span class="hljs-string">{()</span> =&gt;</span> fetchNextPage()}&gt;Go next<span class="hljs-tag">&lt;/<span class="hljs-name">Button</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">Stack</span>&gt;</span></span>
+  )
+}
+</code></pre>
+<ul>
+<li>Механика работы:
+<ul>
+<li>При первой загрузке вызывает queryFn и передает ей объект <code>initialPageParam</code>.
+<ul>
+<li>Он передается не как отдельный самостоятельный объект, а в поле pageParam объекта-контекста.</li>
+<li>Так что если queryFn нужны несколько параметров, то надо оформлять их в виде единого объекта.</li>
+</ul>
+</li>
+<li>Загруженные данные попадают в кэш в виде двух массивов: pages и pageParams.
+<ul>
+<li>Так что <code>data</code> содержит эти два поля.</li>
+<li>pages - массив &quot;страниц&quot;.
+<ul>
+<li>Страница - это каждая пачка данных, полученная от queryFn. Один вызов queryFn - одна страница.</li>
+</ul>
+</li>
+<li>pageParams - массив параметров, благодаря которым соответствующая страница загрузилась.
+<ul>
+<li>В него попадает initialPageParam и результаты getNextPageParam.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Для загрузки следующей страницы есть функция <code>fetchNextPage</code>, параметров не требует.
+<ul>
+<li>Она сначала вызывает функцию <code>getNextPageParam</code> и полученный от нее объект передает в queryFn.
+<ul>
+<li>Если getNextPageParam возвращает undefined - это признак того, что данных больше нет, и тогда либа не вызывает queryFn.</li>
+<li>Соответственно, на нас ложится реализация логики определения, есть еще данные или нет. Если данные есть, то мы должны из getNextPageParam вернуть объект с параметрами для queryFn.</li>
+<li>Формат getNextPageParam такой <code>(lastPage, allPages) =&gt; obj | undefined</code>
+<ul>
+<li>Т.е. либа нам отдает последнюю загруженную страницу и массив всех страниц.</li>
+<li>На основе этой инфы мы должны понять, есть еще данные или нет.</li>
+<li>Конкретная реализация - на нас. Например, мы на сервере при выборе очередной пачки можем рассчитать, есть еще данные или нет, и с пачкой данных вернуть флаг вроде hasMore. В данном примере так и сделано.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+</body>
+</html>
