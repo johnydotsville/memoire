@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import tree from '@src/data/folderTree.json';
 import { flattenTree } from "./utils/flattenTree";
+import { getDocumentUrl } from '@src/utils/getDocumentUrl';
 
 
 export const Test = () => {
@@ -17,7 +18,8 @@ export const Test = () => {
   return (
     <div>{notes.map(note => 
       <div key={note.id}>
-        <a href={`./static/documents/${note.id}.html`} target='_blank'>{note.title}</a>
+        {/* <a href={`./static/documents/${note.id}.html`} target='_blank'>{note.title}</a> */}
+        <a href={getDocumentUrl(`${note.id}.html`)} target='_blank'>{note.title}</a>
       </div>)}
     </div>
   )
