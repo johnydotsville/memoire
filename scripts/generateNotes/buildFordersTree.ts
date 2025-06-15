@@ -10,7 +10,6 @@ export async function buildFoldersTree(rootDir: string): Promise<Folder> {
     name: 'root',
     fullpath: rootDir,
     shortpath: notesBase,
-    meta: [],
     isNote: false,
     subfolders: []
   };
@@ -25,7 +24,6 @@ export async function buildFoldersTree(rootDir: string): Promise<Folder> {
           name: curFolder,
           fullpath,
           shortpath: path.join(folder.shortpath, curFolder),
-          meta: [],
           isNote: false,
           subfolders: []
         };

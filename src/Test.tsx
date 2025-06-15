@@ -1,19 +1,24 @@
 import { useState, useEffect } from "react"
-import tree from '../notesHtml/folderTree.json';
+import tree from '@src/data/folderTree.json';
+import { flattenTree } from "./utils/flattenTree";
 
 
 export const Test = () => {
-  // const [tree, setTree] = useState();
+  const [notes, setNotes] = useState();
 
-  // useEffect(() => {
-  //   getTreeFromFile();
-  //   async function getTreeFromFile() {
-  //     const tree = await fetch('');
-  //     const json = await tree.json();
-  //     setTree(json);
-  //   }
-  // }, []);
+  useEffect(() => {
+    const flatTree = flattenTree(tree) ;
+    const notesOnly = flatTree.filter(folder => folder.isNote);
+    setNotes(notesOnly);
+  }, []);
 
+  if (!notes) return <div>Грузим...</div>
 
-  return <div>{ tree.shortpath }</div>
+  return (
+    <div>{notes.map(note => 
+      <div key={note.id}>
+        <a href={`/static/documents/${note.id}.html`} target='_blank'>{note.title}</a>
+      </div>)}
+    </div>
+  )
 }
